@@ -77,258 +77,89 @@
       </div>
     </div>
   </div>
-
 <script>
 (() => {
-  // เก็บข้อมูลภายในหน้า
-  const friends = []; // {id, name}
-  const items = [];   // {id, name, cents, shares: Set of friend.id}
+  const friends = [];
+  const items = [];
 
-  // helpers
-  const $(id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
 
-  function formatB(b) {
-    return '฿' + (b/100).toFixed(2);
+  function formatB(cents) {
+    return '฿' + (cents / 100).toFixed(2);
   }
 
-  function uid(prefix='id') {
-    return prefix + Math.random().toString(36).slice(2,9);
+  function uid() {
+    return Math.random().toString(36).slice(2, 9);
   }
 
-  // ดึง element
-  const friendNameInput = document.getElementById('friendName');
-  const addFriendBtn = document.getElementById('addFriendBtn');
-  const friendsListDiv = document.getElementById('friendsList');
+  const friendNameInput = $('friendName');
+  const addFriendBtn = $('addFriendBtn');
+  const friendsListDiv = $('friendsList');
 
-  const itemNameInput = document.getElementById('itemName');
-  const itemPriceInput = document.getElementById('itemPrice');
-  const addItemBtn = document.getElementById('addItemBtn');
+  const itemNameInput = $('itemName');
+  const itemPriceInput = $('itemPrice');
+  const addItemBtn = $('addItemBtn');
 
-  const itemsThead = document.getElementById('itemsThead');
-  const itemsTbody = document.getElementById('itemsTbody');
+  const itemsThead = $('itemsThead');
+  const itemsTbody = $('itemsTbody');
+  const totalAmountDiv = $('totalAmount');
+  const perPersonListDiv = $('perPersonList');
 
-  const totalAmountDiv = document.getElementById('totalAmount');
-  const perPersonListDiv = document.getElementById('perPersonList');
-
-  // Add friend
-  addFriendBtn.addEventListener('click', () => {
+  addFriendBtn.onclick = () => {
     const name = friendNameInput.value.trim();
-    if (!name) { alert('กรุณาใส่ชื่อเพื่อน'); return; }
-    const id = uid('f_');
-    friends.push({id, name});
+    if (!name) return alert('กรุณาใส่ชื่อเพื่อน');
+    friends.push({ id: uid(), name });
     friendNameInput.value = '';
-    renderFriends();
-    renderItemsHeader();
-    renderItemsRows();
-    recalc();
-  });
+    render();
+  };
 
-  // Render friends chips
-  function renderFriends() {
-    friendsListDiv.innerHTML = '';
-    friends.forEach((f, idx) => {
-      const chip = document.createElement('div');
-      chip.className = 'friendChip';
-      chip.innerHTML = `<span>${f.name}</span>`;
-      const del = document.createElement('button');
-      del.innerHTML = '✕';
-      del.title = 'ลบเพื่อน';
-      del.addEventListener('click', () => {
-        if (!confirm('ลบเพื่อน "'+f.name+'"? การลบจะเอาออกจากรายการที่เคยเลือกทั้งหมด')) return;
-        // remove friend and its references
-        friends.splice(idx, 1);
-        items.forEach(it => { it.shares.delete(f.id); });
-        renderFriends();
-        renderItemsHeader();
-        renderItemsRows();
-        recalc();
-      });
-      chip.appendChild(del);
-      friendsListDiv.appendChild(chip);
-    });
-    if (friends.length === 0) {
-      friendsListDiv.innerHTML = '<div class="muted">ยังไม่มีเพื่อน — เพิ่มชื่อเพื่อนก่อนจะเลือกคนหารรายการ</div>';
-    }
-  }
-
-  // Add item
-  addItemBtn.addEventListener('click', () => {
-    const iname = itemNameInput.value.trim();
-    const iprice = itemPriceInput.value;
-    if (!iname) { alert('กรุณาใส่ชื่อรายการ'); return; }
-    if (iprice === '' || isNaN(Number(iprice))) { alert('กรุณาใส่ราคาที่ถูกต้อง'); return; }
-    const price = Number(iprice);
-    if (price < 0) { alert('ราคาต้องไม่เป็นลบ'); return; }
-    const cents = Math.round(price * 100); // เก็บเป็นสตางค์
-    const id = uid('it_');
-    // default: shares empty set -> meaning "ยังไม่ได้ติ๊ก" (เมื่อคำนวณจะถือว่าแชร์กับทุกคน)
-    items.push({id, name: iname, cents, shares: new Set()});
+  addItemBtn.onclick = () => {
+    const name = itemNameInput.value.trim();
+    const price = Number(itemPriceInput.value);
+    if (!name || isNaN(price)) return alert('กรุณากรอกข้อมูลให้ครบ');
+    items.push({ name, cents: Math.round(price * 100), shares: [] });
     itemNameInput.value = '';
     itemPriceInput.value = '';
-    renderItemsHeader();
-    renderItemsRows();
-    recalc();
-  });
+    render();
+  };
 
-  // Render table header (รวมคอลัมน์สำหรับแต่ละเพื่อน)
-  function renderItemsHeader() {
-    itemsThead.innerHTML = '';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<th>รายการ</th><th class="right">ราคา</th>`;
-    // add a column per friend
-    friends.forEach(f => {
-      const th = document.createElement('th');
-      th.style.textAlign = 'center';
-      th.innerHTML = `<div>${f.name}</div>`;
-      tr.appendChild(th);
-    });
-    tr.innerHTML += '<th class="center">จัดการ</th>';
-    itemsThead.appendChild(tr);
+  function render() {
+    friendsListDiv.innerHTML = friends
+      .map(f => `<div class="friendChip">${f.name}</div>`)
+      .join('');
+
+    itemsThead.innerHTML = `
+      <tr>
+        <th>รายการ</th>
+        <th class="right">ราคา</th>
+        ${friends.map(f => `<th>${f.name}</th>`).join('')}
+      </tr>
+    `;
+
+    let total = 0;
+    const pay = Object.fromEntries(friends.map(f => [f.name, 0]));
+
+    itemsTbody.innerHTML = items.map(item => {
+      total += item.cents;
+      const shareWith = friends.length || 1;
+      const each = Math.floor(item.cents / shareWith);
+      friends.forEach(f => pay[f.name] += each);
+
+      return `
+        <tr>
+          <td>${item.name}</td>
+          <td class="right">${formatB(item.cents)}</td>
+          ${friends.map(() => `<td>✓</td>`).join('')}
+        </tr>
+      `;
+    }).join('');
+
+    totalAmountDiv.textContent = formatB(total);
+    perPersonListDiv.innerHTML = Object.entries(pay)
+      .map(([name, cents]) => `<div>${name} : ${formatB(cents)}</div>`)
+      .join('');
   }
 
-  // Render items rows
-  function renderItemsRows() {
-    itemsTbody.innerHTML = '';
-    items.forEach((it, itemIdx) => {
-      const tr = document.createElement('tr');
-      // name + price
-      const nameTd = document.createElement('td');
-      nameTd.textContent = it.name;
-      // allow click to edit name
-      nameTd.title = 'คลิกเพื่อแก้ไขชื่อ';
-      nameTd.addEventListener('click', () => {
-        const v = prompt('แก้ไขชื่อรายการ', it.name);
-        if (v !== null) { it.name = v.trim() || it.name; renderItemsRows(); recalc(); }
-      });
-
-      const priceTd = document.createElement('td');
-      priceTd.className = 'right';
-      priceTd.textContent = formatB(it.cents);
-      priceTd.title = 'คลิกเพื่อแก้ไขราคา';
-      priceTd.addEventListener('click', () => {
-        const v = prompt('แก้ไขราคา (บาท)', (it.cents/100).toFixed(2));
-        if (v !== null) {
-          const num = Number(v);
-          if (!isNaN(num) && num >= 0) {
-            it.cents = Math.round(num * 100);
-            renderItemsRows(); recalc();
-          } else alert('ราคาที่ใส่ไม่ถูกต้อง');
-        }
-      });
-
-      tr.appendChild(nameTd);
-      tr.appendChild(priceTd);
-
-      // checkboxes for each friend
-      friends.forEach(f => {
-        const td = document.createElement('td');
-        td.className = 'checkboxCell';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = it.shares.has(f.id);
-        cb.addEventListener('change', () => {
-          if (cb.checked) it.shares.add(f.id); else it.shares.delete(f.id);
-          recalc();
-        });
-        td.appendChild(cb);
-        tr.appendChild(td);
-      });
-
-      // actions
-      const actTd = document.createElement('td');
-      actTd.style.textAlign = 'center';
-      const delBtn = document.createElement('button');
-      delBtn.className = 'secondary';
-      delBtn.textContent = 'ลบ';
-      delBtn.addEventListener('click', () => {
-        if (!confirm('ลบรายการ "'+it.name+'"?')) return;
-        items.splice(itemIdx, 1);
-        renderItemsRows(); recalc();
-      });
-      actTd.appendChild(delBtn);
-      tr.appendChild(actTd);
-
-      itemsTbody.appendChild(tr);
-    });
-
-    if (items.length === 0) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="${2 + Math.max(friends.length,1) + 1}" class="muted">ยังไม่มีรายการ — เพิ่มรายการอาหารทางด้านบน</td>`;
-      itemsTbody.appendChild(tr);
-    }
-  }
-
-  // Recalculate totals
-  function recalc() {
-    // prepare per-person cents map
-    const personMap = {};
-    friends.forEach(f => { personMap[f.id] = {name: f.name, cents: 0}; });
-
-    let totalCents = 0;
-    items.forEach(it => {
-      totalCents += it.cents;
-      // determine sharers
-      const selected = Array.from(it.shares);
-      let sharers;
-      if (selected.length === 0) {
-        // ถ้าไม่มีใครถูกติ๊ก ให้ถือว่า "หารกับทุกคน"
-        sharers = friends.map(f=>f.id);
-      } else {
-        sharers = selected.filter(id => id in personMap); // filter เผื่อเพื่อนถูกลบไปแล้ว
-        if (sharers.length === 0) {
-          // fallback to all if none valid
-          sharers = friends.map(f=>f.id);
-        }
-      }
-      const n = sharers.length;
-      if (n === 0) return; // ไม่มีคนจะรับผิดชอบ (เช่นยังไม่มีเพื่อน) -> ข้าม
-      // แจกสตางค์แบบเป็นธรรม: แจก floor แล้วกระจายเศษสตางค์ทีละ 1
-      const base = Math.floor(it.cents / n);
-      let remainder = it.cents % n;
-      // เพื่อความแน่นอน ให้แจกตามลำดับ friends (เพื่อให้ผล stable)
-      // สร้าง ordered array of sharers in friends order
-      const orderedSharers = friends.map(f=>f.id).filter(id=>sharers.includes(id));
-      orderedSharers.forEach((pid, idx) => {
-        const add = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        personMap[pid].cents += add;
-      });
-    });
-
-    // Render totals
-    totalAmountDiv.textContent = formatB(totalCents);
-
-    // per person list
-    perPersonListDiv.innerHTML = '';
-    if (friends.length === 0) {
-      perPersonListDiv.innerHTML = '<div class="muted">ยังไม่มีเพื่อนในรายการ</div>';
-      return;
-    }
-    friends.forEach(f => {
-      const div = document.createElement('div');
-      div.style.display = 'flex';
-      div.style.justifyContent = 'space-between';
-      div.style.padding = '6px 0';
-      const nameSpan = document.createElement('div');
-      nameSpan.textContent = f.name;
-      const amountSpan = document.createElement('div');
-      amountSpan.textContent = formatB(personMap[f.id] ? personMap[f.id].cents : 0);
-      div.appendChild(nameSpan);
-      div.appendChild(amountSpan);
-      perPersonListDiv.appendChild(div);
-    });
-  }
-
-  // init
-  renderFriends();
-  renderItemsHeader();
-  renderItemsRows();
-  recalc();
-
-  // convenience: press Enter to add friend/item
-  friendNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addFriendBtn.click(); });
-  itemPriceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addItemBtn.click(); });
-  itemNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { if (document.activeElement === itemNameInput) itemPriceInput.focus(); } });
 })();
 </script>
 </body>
