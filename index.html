@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5 หรรษา - Horizontal Style</title>
+    <title>5 หรรษา - Neon Blue (Quick Close)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;600&display=swap');
         
         body { 
             font-family: 'Kanit', sans-serif; 
-            background-color: #050505; 
+            background: radial-gradient(circle at center, #1a2a6c, #101820, #050505);
             color: white; 
             display: flex; 
             flex-direction: column; 
@@ -23,58 +23,66 @@
         }
 
         h1 { 
-            color: #00ff88; 
-            margin: 10px 0 20px 0; 
-            font-size: 2.5rem; 
-            text-shadow: 0 0 15px #00ff88; 
+            color: #00d2ff; 
+            margin: 10px 0 25px 0; 
+            font-size: 3rem; 
+            text-shadow: 0 0 10px #00d2ff, 0 0 30px #00d2ff; 
+            font-weight: 600;
         }
 
         .grid { 
             display: flex;
             flex-direction: column;
-            gap: 15px; 
+            gap: 18px; 
             width: 100%; 
             max-width: 450px; 
             flex-grow: 1;
         }
 
         .card { 
-            flex: 1; /* ทำให้ทุกช่องสูงเท่ากันและขยายเต็มพื้นที่ */
-            background: linear-gradient(145deg, #1e1e1e, #111111);
-            border: 2px solid #333; 
-            border-radius: 15px; 
+            flex: 1; 
+            background: rgba(26, 42, 108, 0.4);
+            border: 2px solid #0056b3; 
+            border-radius: 20px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             cursor: pointer; 
-            font-size: 3rem; 
+            font-size: 3.5rem; 
             font-weight: bold; 
-            transition: 0.2s; 
+            transition: all 0.3s ease; 
             text-align: center; 
-            padding: 10px; 
+            padding: 15px; 
             position: relative; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 0 15px rgba(0, 86, 179, 0.5);
+            color: #00d2ff;
+            text-shadow: 0 0 10px #00d2ff, 0 0 20px #0056b3;
+            overflow: hidden;
+        }
+
+        .card:active {
+            transform: scale(0.98);
         }
 
         .card.active { 
-            background: #ff4757; 
-            border-color: #fff; 
-            font-size: 1.2rem; 
-            color: white; 
-            box-shadow: 0 0 25px #ff4757; 
-            transform: scale(0.98);
+            background: #ffffff; 
+            border-color: #00d2ff; 
+            font-size: 1.3rem; 
+            color: #1a2a6c; 
+            text-shadow: none;
+            box-shadow: 0 0 30px #ffffff; 
         }
 
         .timer { 
             position: absolute; 
-            top: 50%;
+            bottom: 8px;
             right: 15px; 
-            transform: translateY(-50%);
-            font-size: 0.9rem; 
-            background: rgba(0,0,0,0.7); 
-            padding: 5px 10px; 
+            font-size: 0.8rem; 
+            background: #00d2ff; 
+            color: #101820;
+            padding: 2px 10px; 
             border-radius: 10px; 
-            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 600;
         }
     </style>
 </head>
@@ -92,14 +100,16 @@
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const activeTimers = {}; // เก็บอ้างอิงของ Interval ของแต่ละปุ่ม
 
         function playBeep() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
@@ -111,8 +121,20 @@
             "ใครใส่แหวน ดื่ม! 💍", "ใครใส่ต่างหู รอด! ✅", "ใครไม่ใส่นาฬิกา รอด! ✅", "เสื้อสีขาว ดื่ม! ⚪", "เสื้อสีดำ ดื่ม! ⚫", "ใส่รองเท้าผ้าใบ ดื่ม! 👟", "ใส่รองเท้าแตะ รอด! 🩴", "ฉีดน้ำหอมมา ดื่ม! 💨", "ทำสีผม ดื่ม! 🌈", "ใส่สายสิญจน์ ดื่ม! 🧶", "พกยาดม ดื่ม! 👃", "ใส่กางเกงขาสั้น รอด! 🩳", "ทาสีเล็บ ดื่ม! 💅", "ใส่เสื้อกันหนาว ดื่ม! 🧥", "พกเงินสด ดื่ม! 💵", "พาวเวอร์แบงค์วางอยู่ ดื่ม! 🔋", "พกกุญแจรถ ดื่ม! 🔑", "คนผมยาว ดื่ม! 👱‍♀️", "คนหน้ามัน ดื่ม! ✨", "ใส่สร้อยคอ ดื่ม! 📿", "แอพธนาคารสีเขียว ดื่ม! 🟩", "ใช้ iPhone ดื่ม! 🍎", "ใช้ Android รอด! 🤖", "สายตาปกติ รอด! 👀", "ใส่หมวก ดื่ม! 🧢", "เสื้อมีกระดุม ดื่ม! 👔", "เสื้อมีลายการ์ตูน ดื่ม! 🐥", "สะพายกระเป๋า ดื่ม! 👜", "ไว้หนวดเครา ดื่ม! 🧔", "ใส่ถุงเท้า ดื่ม! 🧦", "พกหูฟังมา ดื่ม! 🎧", "ใส่แมสก์ค้างไว้ ดื่ม! 😷", "ใส่เสื้อเชิ้ต ดื่ม! 👔", "ใส่กางเกงวอร์ม รอด! 🏃", "มีเหรียญในเป๋า ดื่ม! 🪙", "พกบัตรประชาชน ดื่ม! 🪪", "ใส่รองเท้าส้นสูง ดื่ม! 👠", "ไว้เล็บยาว ดื่ม! 💅", "ใส่เข็มขัด ดื่ม! 🔗", "รูปแฟนขึ้นหน้าจอ ดื่ม! 📱", "ใส่เสื้อยืด ดื่ม! 👕", "พกผ้าเช็ดหน้า รอด! 🧊", "เสื้อสีน้ำเงิน ดื่ม! 🔵", "ยิ้มสวย รอด! 😁", "เป็นคนชวนมา ดื่ม! 📣", "เกิดเดือนนี้ ดื่ม! 🎂", "ใส่สร้อยข้อมือ ดื่ม! ⌚", "พกจีช็อค ดื่ม! ⌚", "ย้อมผมสีเข้ม รอด! 💆", "ยังไม่ได้อาบน้ำ ดื่ม! 🚿"
         ];
 
+        function resetCard(element, originalNumber) {
+            clearInterval(activeTimers[originalNumber]); // หยุดตัวนับเวลา
+            element.classList.remove('active');
+            element.innerHTML = originalNumber;
+            delete activeTimers[originalNumber];
+        }
+
         function handleCardClick(element, originalNumber) {
-            if (element.classList.contains('active')) return;
+            // ฟังชั่นใหม่: ถ้ากดซ้ำตอนที่แสดงบทลงโทษอยู่ ให้ปิดทันที
+            if (element.classList.contains('active')) {
+                playBeep();
+                resetCard(element, originalNumber);
+                return;
+            }
 
             playBeep();
             if (navigator.vibrate) navigator.vibrate(100);
@@ -124,13 +146,12 @@
             let timeLeft = 10;
             const timerElement = document.getElementById(`t-${originalNumber}`);
             
-            const countdown = setInterval(() => {
+            // เริ่มการนับถอยหลังและเก็บไว้ใน Object เพื่อให้ปิดได้ภายหลัง
+            activeTimers[originalNumber] = setInterval(() => {
                 timeLeft--;
                 if (timerElement) timerElement.innerText = timeLeft;
                 if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    element.classList.remove('active');
-                    element.innerHTML = originalNumber;
+                    resetCard(element, originalNumber);
                 }
             }, 1000);
         }
